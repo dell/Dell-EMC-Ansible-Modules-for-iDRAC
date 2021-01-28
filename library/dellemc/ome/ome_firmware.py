@@ -71,6 +71,10 @@ options:
       - I(baseline_names) is mutually exclusive with I(device_group_names), I(device_id)
         and I(device_service_tag).
     type: str
+  stage_reboot:
+    description: "Stage FW update for next server reboot."
+    default: False
+    type: bool
   dup_file:
     description: "Executable file to apply on the targets."
     required: false
@@ -241,9 +245,14 @@ def job_payload_for_update(rest_obj, module, target_data, baseline=None):
         "State": "Enabled", "JobType": {"Id": resp, "Name": "Update_Task"},
         "Targets": target_data,
         "Params": [{"Key": "operationName", "Value": "INSTALL_FIRMWARE"},
-                   {"Key": "stagingValue", "Value": "false"},
                    {"Key": "signVerify", "Value": "true"}]
     }
+
+    if module.params.get("stage_reboot"):
+        payload["Params"].append({"Key": "stagingValue", "Value": "true"})
+    else:
+        payload["Params"].append({"Key": "stagingValue", "Value": "false"})
+
     if baseline is not None:
         payload["Params"].append({"Key": "complianceReportId", "Value": "{0}".format(baseline["baseline_id"])})
         payload["Params"].append({"Key": "repositoryId", "Value": "{0}".format(baseline["repo_id"])})
@@ -251,6 +260,7 @@ def job_payload_for_update(rest_obj, module, target_data, baseline=None):
         payload["Params"].append({"Key": "complianceUpdate", "Value": "true"})
     else:
         payload["Params"].append({"JobId": 0, "Key": "complianceUpdate", "Value": "false"})
+
     return payload
 
 
@@ -474,6 +484,7 @@ def main():
             "dup_file": {"required": False, "type": "str"},
             "device_group_names": {"required": False, "type": "list", "elements": 'str'},
             "baseline_name": {"required": False, "type": "str"},
+            "stage_reboot": {"required": False, "type": "bool", "default": False},
         },
         required_one_of=[["device_id", "device_service_tag", "device_group_names", "baseline_name"]],
         mutually_exclusive=[["device_group_names", "device_id"],
