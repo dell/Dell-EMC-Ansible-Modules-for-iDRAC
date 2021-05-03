@@ -4,6 +4,21 @@ Dell EMC OpenManage Ansible Modules allows data center and IT administrators to 
 
 OpenManage Ansible Modules simplifies and automates provisioning, deployment, and updates of PowerEdge servers and modular infrastructure. It allows system administrators and software developers to introduce the physical infrastructure provisioning into their software provisioning stack, integrate with existing DevOps pipelines and manage their infrastructure using version-controlled playbooks, server configuration profiles, and templates in line with the Infrastructure-as-Code (IaC) principles.
 
+- [Supported Platforms](#supported-platforms)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Sample Playbooks](#sample-playbooks)
+- [Handling Modules with Required Shares](#handling-modules-with-required-shares)
+  - [Why is a share required?](#why-is-a-share-required)
+  - [How to handle required shares easily](#how-to-handle-required-shares-easily)
+- [Documentation](#documentation)
+- [LICENSE](#license)
+- [Contributing](#contributing)
+- [Testing](#testing)
+- [Maintenance](#maintenance)
+- [Support](#support)
+- [Authors](#authors)
+
 ## Supported Platforms
   * iDRAC 7 and 8 based Dell EMC PowerEdge Servers with Firmware versions 2.70.70.70 and above.
   * iDRAC 9 based Dell EMC PowerEdge Servers with Firmware versions 4.32.10.00 and above.
@@ -29,8 +44,52 @@ OpenManage Ansible Modules simplifies and automates provisioning, deployment, an
 Install the collection from the github repository using the latest commit on the branch 'collections'  
 ```ansible-galaxy collection install git+https://github.com/dell/dellemc-openmanage-ansible-modules.git,collections```
 
-## Playbooks
+## Sample Playbooks
 Latest sample playbooks and examples are available at [playbooks](https://github.com/dell/dellemc-openmanage-ansible-modules/tree/collections/playbooks).
+
+## Handling Modules with Required Shares
+
+### Why is a share required?
+
+Many modules use what's called a server configuration profile (SCP) to update the iDRAC attributes on iDRAC 7/8 and iDRAC 9.
+When we were first developing these Ansible modules, iDRAC7/8 only supported importing a SCP file from a remote 
+network share (CIFS or NFS). Subsquently share_name argument was added to specify the network share location that
+iDRAC uses to import the SCP. iDRAC7/8 now also support local file streaming within the HTTPS message playload itself
+(firmare version 2.50.50.50 and above). We are currently working to update the modules to leverage these new mechanisms.
+For a detailed explanation see [this post](https://github.com/dell/omsdk/blob/devel/docs/idrac.rst#prerequisites)
+
+### How to handle required shares easily
+
+In the meantime, you do not actually need to provide a share. You can pass {{ playbook_dir }} to share name like this:
+
+      - name: Setup iDRAC NIC
+        idrac_network:
+           idrac_ip:   "{{ idrac_ip }}"
+           idrac_user: "{{ idrac_user }}"
+           idrac_password:  "{{ idrac_password }}"
+           share_name: "{{ playbook_dir }}"
+           enable_nic: "Enabled"
+           nic_selection: "Dedicated"
+           failover_network: "T_None"
+           auto_detect: "Disabled"
+           auto_negotiation: "Enabled"
+           network_speed: "T_1000"
+           duplex_mode: "Full"
+    
+        tags:
+           - idrac_nic
+
+or if you are debugging a module it would look like this:
+
+    {
+        "ANSIBLE_MODULE_ARGS": {
+            "idrac_ip": "192.168.1.63",
+            "idrac_user": "root",
+            "idrac_password": "calvin",
+            "share_name": "/home/gelante/programs/dellemc-openmanage-ansible-modules",
+            "ip_address": "192.168.1.64"
+        }
+    }
 
 ## Documentation
 Use `ansible-doc` to view the documentation of each module and plugin.  

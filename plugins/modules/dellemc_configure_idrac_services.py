@@ -182,7 +182,7 @@ error_info:
 import json
 from ansible_collections.dellemc.openmanage.plugins.module_utils.dellemc_idrac import iDRACConnection
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.urls import open_url, ConnectionError, SSLValidationError
+from ansible.module_utils.urls import ConnectionError, SSLValidationError
 from ansible.module_utils.six.moves.urllib.error import URLError, HTTPError
 
 try:
@@ -213,6 +213,11 @@ def run_idrac_services_config(idrac, module):
                                                         module.params['share_user'],
                                                         module.params['share_password'])
                                                     )
+
+    if not upd_share.IsValid:
+        module.fail_json(msg=str("The share you provided is not valid. Make sure the path and credentials you passed"
+                                 " are correct and try again. Tip: You can use the local playbook directory by "
+                                 "passing \"{{ playbook_dir }}\" as the argument to \"share_name\""))
 
     set_liason = idrac.config_mgr.set_liason_share(upd_share)
     if set_liason['Status'] == "Failed":
